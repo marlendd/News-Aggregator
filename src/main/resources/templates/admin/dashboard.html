@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: html}">
+<head>
+    <th:block th:fragment="head-extra">
+        <style>
+            /* Ensure text is visible */
+            body {
+                color: #212529 !important;
+            }
+            h1, h2, h3, h4, h5, h6 {
+                color: #212529 !important;
+            }
+            .stats-card {
+                transition: transform 0.2s;
+            }
+            .stats-card:hover {
+                transform: translateY(-5px);
+            }
+            .stats-icon {
+                font-size: 2.5rem;
+            }
+            .bg-purple {
+                background-color: #6f42c1 !important;
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+    <th:block th:fragment="content">
+        <!-- Заголовок -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-dark"><i class="bi bi-shield-check text-danger"></i> Панель администратора</h2>
+            <div class="btn-group">
+                <a th:href="@{/admin/users}" class="btn btn-outline-primary">
+                    <i class="bi bi-people"></i> Пользователи
+                </a>
+                <a th:href="@{/admin/categories}" class="btn btn-outline-success">
+                    <i class="bi bi-tags"></i> Категории
+                </a>
+                <a th:href="@{/admin/sources}" class="btn btn-outline-warning">
+                    <i class="bi bi-rss"></i> RSS источники
+                </a>
+                <a th:href="@{/admin/articles}" class="btn btn-outline-info">
+                    <i class="bi bi-newspaper"></i> Статьи
+                </a>
+            </div>
+        </div>
+        
+        <!-- Статистические карточки -->
+        <div class="row mb-4">
+            <div class="col-md-2 mb-3">
+                <div class="card stats-card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-people stats-icon"></i>
+                        <h3 th:text="${totalUsers}">0</h3>
+                        <p class="mb-0">Пользователей</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-2 mb-3">
+                <div class="card stats-card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-newspaper stats-icon"></i>
+                        <h3 th:text="${totalArticles}">0</h3>
+                        <p class="mb-0">Всего статей</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-2 mb-3">
+                <div class="card stats-card bg-info text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-check-circle stats-icon"></i>
+                        <h3 th:text="${publishedArticles}">0</h3>
+                        <p class="mb-0">Опубликовано</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-2 mb-3">
+                <div class="card stats-card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-clock stats-icon"></i>
+                        <h3 th:text="${pendingArticles}">0</h3>
+                        <p class="mb-0">На модерации</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-2 mb-3">
+                <div class="card stats-card bg-secondary text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-tags stats-icon"></i>
+                        <h3 th:text="${totalCategories}">0</h3>
+                        <p class="mb-0">Категорий</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-2 mb-3">
+                <div class="card stats-card bg-purple text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-rss stats-icon"></i>
+                        <h3 th:text="${activeSources} + '/' + ${totalSources}">0/0</h3>
+                        <p class="mb-0">RSS источники</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-2 mb-3">
+                <div class="card stats-card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-graph-up stats-icon"></i>
+                        <h3 class="text-white" th:text="${publishedArticles > 0 ? (publishedArticles * 100 / totalArticles) : 0} + '%'">0%</h3>
+                        <p class="mb-0 text-white">Одобрено</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Основной контент -->
+        <div class="row">
+            <!-- Последние пользователи -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="bi bi-people"></i> Последние пользователи</h5>
+                        <a th:href="@{/admin/users}" class="btn btn-sm btn-outline-primary">Все пользователи</a>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${recentUsers.empty}" class="text-muted text-center py-3">
+                            Нет активных пользователей
+                        </div>
+                        
+                        <div th:unless="${recentUsers.empty}">
+                            <div th:each="user : ${recentUsers}" class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <div>
+                                    <strong th:text="${user.username}">username</strong>
+                                    <br>
+                                    <small class="text-muted" th:text="${user.email}">email@example.com</small>
+                                </div>
+                                <div class="text-end">
+                                    <div th:each="role : ${user.roles}">
+                                        <span th:switch="${role.name}" class="badge">
+                                            <span th:case="'ADMIN'" class="badge bg-danger">Admin</span>
+                                            <span th:case="'EDITOR'" class="badge bg-warning">Editor</span>
+                                            <span th:case="'READER'" class="badge bg-info">Reader</span>
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span th:if="${user.enabled}" class="badge bg-success">Активен</span>
+                                        <span th:unless="${user.enabled}" class="badge bg-danger">Заблокирован</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Последние статьи -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="bi bi-newspaper"></i> Последние статьи</h5>
+                        <a th:href="@{/admin/articles}" class="btn btn-sm btn-outline-primary">Все статьи</a>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${recentArticles.empty}" class="text-muted text-center py-3">
+                            Нет статей
+                        </div>
+                        
+                        <div th:unless="${recentArticles.empty}">
+                            <div th:each="article : ${recentArticles}" class="d-flex justify-content-between align-items-start py-2 border-bottom">
+                                <div class="flex-grow-1">
+                                    <a th:href="@{/news/{id}(id=${article.id})}" 
+                                       th:text="${article.title}" 
+                                       class="text-decoration-none fw-bold">Заголовок статьи</a>
+                                    <br>
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar"></i>
+                                        <span th:text="${#temporals.format(article.createdAt, 'dd.MM.yyyy HH:mm')}">01.01.2026 12:00</span>
+                                    </small>
+                                </div>
+                                <div class="text-end ms-2">
+                                    <span th:switch="${article.status}" class="badge">
+                                        <span th:case="'PUBLISHED'" class="badge bg-success">Опубликована</span>
+                                        <span th:case="'PENDING'" class="badge bg-warning">На модерации</span>
+                                        <span th:case="'REJECTED'" class="badge bg-danger">Отклонена</span>
+                                        <span th:case="'DRAFT'" class="badge bg-secondary">Черновик</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Быстрые действия -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-lightning"></i> Быстрые действия</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <a th:href="@{/admin/categories}" class="btn btn-outline-success w-100">
+                                    <i class="bi bi-plus-circle"></i> Добавить категорию
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <a th:href="@{/admin/users}" class="btn btn-outline-primary w-100">
+                                    <i class="bi bi-person-plus"></i> Управление пользователями
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <a th:href="@{/admin/articles?status=PENDING}" class="btn btn-outline-warning w-100">
+                                    <i class="bi bi-eye"></i> Статьи на модерации
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <a th:href="@{/test/ai}" class="btn btn-outline-info w-100">
+                                    <i class="bi bi-robot"></i> Тестирование ИИ
+                                </a>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <a th:href="@{/}" class="btn btn-outline-secondary w-100">
+                                    <i class="bi bi-house"></i> На главную
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+</body>
+</html>

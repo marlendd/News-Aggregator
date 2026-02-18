@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: html}">
+<head>
+    <th:block th:fragment="head-extra">
+        <style>
+            /* Ensure text is visible */
+            body {
+                color: #212529 !important;
+            }
+            h1, h2, h3, h4, h5, h6 {
+                color: #212529 !important;
+            }
+            .user-avatar {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: linear-gradient(45deg, #007bff, #6c757d);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-weight: bold;
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+    <th:block th:fragment="content">
+        <!-- Заголовок и навигация -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a th:href="@{/admin}">Админ-панель</a></li>
+                        <li class="breadcrumb-item active">Пользователи</li>
+                    </ol>
+                </nav>
+                <h2><i class="bi bi-people"></i> Управление пользователями</h2>
+            </div>
+        </div>
+        
+        <!-- Поиск -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form th:action="@{/admin/users}" method="get" class="row g-3">
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" name="search" 
+                               th:value="${search}" placeholder="Поиск по имени пользователя или email...">
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Найти
+                        </button>
+                        <a th:href="@{/admin/users}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Сбросить
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Сообщения -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+            <i class="bi bi-check-circle"></i> <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+            <i class="bi bi-exclamation-triangle"></i> <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
+        <!-- Таблица пользователей -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    Всего пользователей: <span class="badge bg-primary" th:text="${users.totalElements}">0</span>
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div th:if="${users.empty}" class="text-center py-5">
+                    <i class="bi bi-people display-1 text-muted"></i>
+                    <h4 class="text-muted mt-3">Пользователи не найдены</h4>
+                    <p class="text-muted">Попробуйте изменить параметры поиска</p>
+                </div>
+                
+                <div th:unless="${users.empty}" class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Пользователь</th>
+                                <th>Email</th>
+                                <th>Роли</th>
+                                <th>Статус</th>
+                                <th>Дата регистрации</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="user : ${users.content}">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="user-avatar me-3" th:text="${#strings.substring(user.username, 0, 1).toUpperCase()}">U</div>
+                                        <div>
+                                            <strong th:text="${user.username}">username</strong>
+                                            <br>
+                                            <small class="text-muted">ID: <span th:text="${user.id}">1</span></small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td th:text="${user.email}">email@example.com</td>
+                                <td>
+                                    <div th:each="role : ${user.roles}">
+                                        <span th:switch="${role.name}" class="badge me-1">
+                                            <span th:case="'ADMIN'" class="badge bg-danger">
+                                                Admin
+                                                <!-- Показываем предупреждение для последнего админа -->
+                                                <span th:if="${@userService.isLastAdmin(user)}" 
+                                                      class="ms-1" title="Последний администратор в системе">
+                                                    <i class="bi bi-exclamation-triangle text-warning"></i>
+                                                </span>
+                                            </span>
+                                            <span th:case="'EDITOR'" class="badge bg-warning">Editor</span>
+                                            <span th:case="'READER'" class="badge bg-info">Reader</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span th:if="${user.enabled}" class="badge bg-success">Активен</span>
+                                    <span th:unless="${user.enabled}" class="badge bg-danger">Заблокирован</span>
+                                </td>
+                                <td>
+                                    <span th:text="${#temporals.format(user.createdAt, 'dd.MM.yyyy')}">01.01.2026</span>
+                                    <br>
+                                    <small class="text-muted" th:text="${#temporals.format(user.createdAt, 'HH:mm')}">12:00</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <!-- Кнопка блокировки/разблокировки -->
+                                        <!-- Скрываем кнопку, если это текущий пользователь или последний админ -->
+                                        <form th:if="${#authentication.name != user.username and !@userService.isLastAdmin(user)}"
+                                              th:action="@{/admin/users/{id}/toggle-status(id=${user.id})}" 
+                                              method="post" style="display: inline;">
+                                            <button type="submit" 
+                                                    th:class="${user.enabled} ? 'btn btn-sm btn-outline-warning' : 'btn btn-sm btn-outline-success'"
+                                                    th:onclick="'return confirm(\'Вы уверены?\')'"
+                                                    th:title="${user.enabled} ? 'Заблокировать пользователя' : 'Разблокировать пользователя'">
+                                                <i th:class="${user.enabled} ? 'bi bi-lock' : 'bi bi-unlock'"></i>
+                                                <span th:text="${user.enabled} ? 'Заблокировать' : 'Разблокировать'">Действие</span>
+                                            </button>
+                                        </form>
+                                        
+                                        <!-- Показываем сообщение для последнего админа -->
+                                        <span th:if="${@userService.isLastAdmin(user)}" 
+                                              class="badge bg-warning text-dark" 
+                                              title="Последний администратор не может быть заблокирован">
+                                            <i class="bi bi-shield-exclamation"></i> Защищен
+                                        </span>
+                                        
+                                        <!-- Показываем сообщение, если это текущий пользователь -->
+                                        <span th:if="${#authentication.name == user.username}" 
+                                              class="badge bg-secondary">
+                                            <i class="bi bi-person-check"></i> Это вы
+                                        </span>
+                                        
+                                        <!-- Dropdown для смены роли -->
+                                        <!-- Скрываем dropdown, если это текущий пользователь или последний админ при смене на не-админа -->
+                                        <div th:if="${#authentication.name != user.username}" 
+                                             class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" 
+                                                    data-bs-toggle="dropdown">
+                                                <i class="bi bi-person-gear"></i> Роль
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li th:if="${!@userService.isLastAdmin(user)}">
+                                                    <form th:action="@{/admin/users/{id}/change-role(id=${user.id})}" method="post">
+                                                        <input type="hidden" name="newRole" value="READER">
+                                                        <button type="submit" class="dropdown-item"
+                                                                onclick="return confirm('Изменить роль на Reader?')">
+                                                            <i class="bi bi-person"></i> Reader
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                <li th:if="${!@userService.isLastAdmin(user)}">
+                                                    <form th:action="@{/admin/users/{id}/change-role(id=${user.id})}" method="post">
+                                                        <input type="hidden" name="newRole" value="EDITOR">
+                                                        <button type="submit" class="dropdown-item"
+                                                                onclick="return confirm('Изменить роль на Editor?')">
+                                                            <i class="bi bi-pencil"></i> Editor
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                <li>
+                                                    <form th:action="@{/admin/users/{id}/change-role(id=${user.id})}" method="post">
+                                                        <input type="hidden" name="newRole" value="ADMIN">
+                                                        <button type="submit" class="dropdown-item"
+                                                                onclick="return confirm('Изменить роль на Admin?')">
+                                                            <i class="bi bi-shield"></i> Admin
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                <!-- Показываем сообщение для последнего админа -->
+                                                <li th:if="${@userService.isLastAdmin(user)}">
+                                                    <span class="dropdown-item-text text-muted">
+                                                        <i class="bi bi-info-circle"></i> Роль последнего админа нельзя изменить
+                                                    </span>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Пагинация -->
+        <div th:if="${users.totalPages > 1}" class="d-flex justify-content-center mt-4">
+            <nav>
+                <ul class="pagination">
+                    <li th:class="${users.first} ? 'page-item disabled' : 'page-item'">
+                        <a class="page-link" th:href="@{/admin/users(page=${currentPage - 1}, search=${search})}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    
+                    <li th:each="pageNum : ${#numbers.sequence(0, users.totalPages - 1)}"
+                        th:class="${pageNum == currentPage} ? 'page-item active' : 'page-item'">
+                        <a class="page-link" th:href="@{/admin/users(page=${pageNum}, search=${search})}" 
+                           th:text="${pageNum + 1}">1</a>
+                    </li>
+                    
+                    <li th:class="${users.last} ? 'page-item disabled' : 'page-item'">
+                        <a class="page-link" th:href="@{/admin/users(page=${currentPage + 1}, search=${search})}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </th:block>
+</body>
+</html>

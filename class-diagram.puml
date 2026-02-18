@@ -1,0 +1,107 @@
+@startuml News Aggregator Class Diagram
+
+!theme plain
+skinparam backgroundColor white
+skinparam classBackgroundColor lightblue
+skinparam classBorderColor black
+skinparam packageBackgroundColor lightgray
+
+package "Controllers" {
+    class HomeController
+    class AdminController  
+    class EditorController
+    class UserController
+}
+
+package "Services" {
+    class UserService
+    class ArticleService
+    class CategoryService
+    class NewsSourceService
+    class RssParserService
+    class SavedArticleService
+}
+
+package "Entities" {
+    class User {
+        +Long id
+        +String username
+        +String email
+        +Set<Role> roles
+    }
+    
+    class Article {
+        +Long id
+        +String title
+        +String content
+        +ArticleStatus status
+        +Category category
+        +NewsSource source
+    }
+    
+    class Category {
+        +Long id
+        +String name
+        +String color
+    }
+    
+    class NewsSource {
+        +Long id
+        +String name
+        +String rssUrl
+        +boolean active
+    }
+    
+    class Role {
+        +Long id
+        +String name
+    }
+    
+    class SavedArticle {
+        +User user
+        +Article article
+    }
+    
+    enum ArticleStatus {
+        DRAFT
+        PUBLISHED
+        REJECTED
+    }
+}
+
+package "Repositories" {
+    interface UserRepository
+    interface ArticleRepository
+    interface CategoryRepository
+    interface NewsSourceRepository
+    interface SavedArticleRepository
+}
+
+package "Config" {
+    class SecurityConfig
+    class DataInitializer
+}
+
+' Main relationships
+HomeController --> ArticleService
+AdminController --> UserService
+AdminController --> ArticleService
+EditorController --> ArticleService
+UserController --> SavedArticleService
+
+UserService --> UserRepository
+ArticleService --> ArticleRepository
+CategoryService --> CategoryRepository
+NewsSourceService --> NewsSourceRepository
+SavedArticleService --> SavedArticleRepository
+RssParserService --> NewsSourceService
+
+' Entity relationships
+User ||--o{ Role
+User ||--o{ SavedArticle
+Article }o--|| Category
+Article }o--|| NewsSource
+Article ||--o{ SavedArticle
+Article ||--|| ArticleStatus
+
+@enduml

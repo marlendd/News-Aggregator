@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: html}">
+<head>
+    <th:block th:fragment="head-extra">
+        <!-- Дополнительные стили для профиля -->
+        <style>
+            .role-item {
+                display: inline-block;
+                margin-right: 0.5rem;
+                margin-bottom: 0.25rem;
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+    <th:block th:fragment="content">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4><i class="bi bi-person-circle"></i> Профиль пользователя</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Основная информация</h6>
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td><strong>Имя пользователя:</strong></td>
+                                        <td th:text="${user.username}">username</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Email:</strong></td>
+                                        <td th:text="${user.email}">email@example.com</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Статус:</strong></td>
+                                        <td>
+                                            <span th:if="${user.enabled}" class="badge bg-success">Активен</span>
+                                            <span th:unless="${user.enabled}" class="badge bg-danger">Заблокирован</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Дата регистрации:</strong></td>
+                                        <td th:text="${#temporals.format(user.createdAt, 'dd.MM.yyyy HH:mm')}">01.01.2026 12:00</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Роли</h6>
+                                <div class="mb-2">
+                                    <div th:each="role : ${user.roles}" class="role-item">
+                                        <span th:switch="${role.name}">
+                                            <span th:case="'ADMIN'" class="badge bg-danger fs-6">Администратор</span>
+                                            <span th:case="'EDITOR'" class="badge bg-warning fs-6">Редактор</span>
+                                            <span th:case="'READER'" class="badge bg-info fs-6">Читатель</span>
+                                            <span th:case="*" class="badge bg-secondary fs-6" th:text="${role.name}">Роль</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="d-flex gap-2">
+                            <a th:href="@{/user/preferences}" class="btn btn-primary">
+                                <i class="bi bi-gear"></i> Настройки
+                            </a>
+                            <a th:href="@{/user/saved}" class="btn btn-outline-primary">
+                                <i class="bi bi-bookmark"></i> Сохраненные статьи
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6><i class="bi bi-bar-chart"></i> Статистика</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center">
+                            <h4 class="text-primary" th:text="${savedArticlesCount}">0</h4>
+                            <small class="text-muted">Сохраненных статей</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6><i class="bi bi-clock-history"></i> Последняя активность</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Последний вход: <br>
+                        <span th:text="${#temporals.format(user.updatedAt, 'dd.MM.yyyy HH:mm')}">01.01.2026 12:00</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+</body>
+</html>

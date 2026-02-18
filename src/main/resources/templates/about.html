@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: html}">
+<head>
+    <th:block th:fragment="head-extra">
+        <style>
+            .hero-section {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 4rem 0;
+                margin-bottom: 3rem;
+                border-radius: 0.5rem;
+            }
+            .feature-card {
+                transition: transform 0.2s;
+                height: 100%;
+            }
+            .feature-card:hover {
+                transform: translateY(-5px);
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+    <div th:fragment="content">
+        <!-- Hero Section -->
+        <div class="hero-section text-center">
+            <div class="container">
+                <h1 class="display-4 fw-bold mb-3">О проекте</h1>
+                <p class="lead">
+                    Курсовой проект по разработке веб-приложений на Java Spring Boot
+                </p>
+            </div>
+        </div>
+        
+        <!-- Project Description -->
+        <div class="row mb-5">
+            <div class="col-lg-8 mx-auto">
+                <h2 class="h3 mb-4">Описание проекта</h2>
+                <p class="lead">
+                    Агрегатор новостей — это веб-приложение, разработанное с использованием современных технологий 
+                    Java Spring Boot, предназначенное для сбора, обработки и представления новостей из различных источников.
+                </p>
+                <p>
+                    Проект реализует полноценную систему управления новостным контентом с поддержкой ролевой модели, 
+                    интеграцией с RSS-фидами и использованием ИИ-сервисов для автоматической обработки контента.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Features -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <h2 class="h3 mb-4 text-center">Основные возможности</h2>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card feature-card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-people-fill text-primary" style="font-size: 3rem;"></i>
+                        <h5 class="card-title mt-3">Ролевая система</h5>
+                        <p class="card-text">
+                            Три роли пользователей: Администратор, Редактор и Читатель с различными уровнями доступа
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card feature-card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-rss-fill text-primary" style="font-size: 3rem;"></i>
+                        <h5 class="card-title mt-3">RSS-интеграция</h5>
+                        <p class="card-text">
+                            Автоматический импорт новостей из RSS-фидов с поддержкой множественных источников
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card feature-card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-robot text-primary" style="font-size: 3rem;"></i>
+                        <h5 class="card-title mt-3">ИИ-обработка</h5>
+                        <p class="card-text">
+                            Автоматическая категоризация и генерация кратких сводок статей с помощью ИИ
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card feature-card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-search text-primary" style="font-size: 3rem;"></i>
+                        <h5 class="card-title mt-3">Поиск и фильтрация</h5>
+                        <p class="card-text">
+                            Мощная система поиска по содержимому и фильтрация по категориям
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card feature-card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-bookmark-fill text-primary" style="font-size: 3rem;"></i>
+                        <h5 class="card-title mt-3">Персонализация</h5>
+                        <p class="card-text">
+                            Сохранение избранных статей и настройка персональных предпочтений
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card feature-card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-shield-check text-primary" style="font-size: 3rem;"></i>
+                        <h5 class="card-title mt-3">Безопасность</h5>
+                        <p class="card-text">
+                            Spring Security для аутентификации и авторизации с защитой от основных угроз
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Technologies -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <h2 class="h3 mb-4 text-center">Используемые технологии</h2>
+            </div>
+            
+            <div class="col-lg-6">
+                <h5>Backend</h5>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-check-circle text-success"></i> Java 17+</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Spring Boot 3.2</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Spring Security</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Spring Data JPA</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Hibernate</li>
+                    <li><i class="bi bi-check-circle text-success"></i> MySQL Database</li>
+                </ul>
+            </div>
+            
+            <div class="col-lg-6">
+                <h5>Frontend</h5>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-check-circle text-success"></i> Thymeleaf Templates</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Bootstrap 5</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Bootstrap Icons</li>
+                    <li><i class="bi bi-check-circle text-success"></i> JavaScript (ES6+)</li>
+                    <li><i class="bi bi-check-circle text-success"></i> CSS3</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Responsive Design</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Architecture -->
+        <div class="row mb-5">
+            <div class="col-lg-8 mx-auto">
+                <h2 class="h3 mb-4 text-center">Архитектура</h2>
+                <p>
+                    Проект построен по архитектурному паттерну MVC (Model-View-Controller) с четким разделением слоев:
+                </p>
+                <ul>
+                    <li><strong>Контроллеры</strong> — обработка HTTP-запросов и управление потоком данных</li>
+                    <li><strong>Сервисы</strong> — бизнес-логика приложения</li>
+                    <li><strong>Репозитории</strong> — доступ к данным через Spring Data JPA</li>
+                    <li><strong>Сущности</strong> — модели данных с JPA-аннотациями</li>
+                    <li><strong>Представления</strong> — Thymeleaf-шаблоны для отображения данных</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Testing -->
+        <div class="row mb-5">
+            <div class="col-lg-8 mx-auto">
+                <h2 class="h3 mb-4 text-center">Тестирование</h2>
+                <p>
+                    Проект включает комплексное тестирование различных уровней:
+                </p>
+                <ul>
+                    <li><strong>Unit-тесты</strong> — тестирование отдельных компонентов</li>
+                    <li><strong>Integration-тесты</strong> — тестирование взаимодействия компонентов</li>
+                    <li><strong>Property-based тесты</strong> — проверка универсальных свойств системы</li>
+                    <li><strong>Security-тесты</strong> — проверка безопасности и авторизации</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Contact -->
+        <div class="row">
+            <div class="col-lg-6 mx-auto text-center">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Курсовой проект</h5>
+                        <p class="card-text">
+                            Разработано в рамках изучения веб-разработки на Java Spring Boot
+                        </p>
+                        <p class="text-muted mb-0">
+                            <i class="bi bi-calendar"></i> 2026 год
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

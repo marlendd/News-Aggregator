@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' - Агрегатор новостей'">Управление RSS источниками - Агрегатор новостей</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .sidebar { 
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+        .sidebar .nav-link {
+            color: #212529;
+            padding: 0.75rem 1rem;
+        }
+        .sidebar .nav-link:hover {
+            background-color: #e9ecef;
+            color: #0d6efd;
+        }
+        .nav-link.active { 
+            background-color: #0d6efd !important; 
+            color: white !important; 
+            border-radius: 5px; 
+        }
+    </style>
+</head>
+<body>
+    <!-- Простая навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">📰 Агрегатор новостей</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" th:href="@{/}">На главную</a>
+                <a class="nav-link" th:href="@{/admin/dashboard}">Админка</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Боковое меню админа -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/admin/dashboard}">
+                                <i class="fas fa-tachometer-alt"></i> Дашборд
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/admin/users}">
+                                <i class="fas fa-users"></i> Пользователи
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/admin/categories}">
+                                <i class="fas fa-tags"></i> Категории
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" th:href="@{/admin/sources}">
+                                <i class="fas fa-rss"></i> RSS Источники
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/admin/articles}">
+                                <i class="fas fa-newspaper"></i> Статьи
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/test/ai}">
+                                <i class="fas fa-robot"></i> Тестирование ИИ
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Основной контент -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2" th:text="${pageTitle}">Управление RSS источниками</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSourceModal">
+                                <i class="fas fa-plus"></i> Добавить источник
+                            </button>
+                            <form th:action="@{/admin/sources/parse-all}" method="post" style="display: inline;">
+                                <button type="submit" class="btn btn-primary" onclick="return confirm('Запустить парсинг всех RSS лент?')">
+                                    <i class="fas fa-sync"></i> Парсить все
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Сообщения -->
+                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle"></i> <span th:text="${successMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle"></i> <span th:text="${errorMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <!-- Поиск -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <form th:action="@{/admin/sources}" method="get" class="d-flex">
+                            <input type="text" class="form-control me-2" name="search" 
+                                   th:value="${search}" placeholder="Поиск по названию источника...">
+                            <button class="btn btn-outline-secondary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <a th:href="@{/admin/sources}" class="btn btn-outline-secondary ms-1" 
+                               th:if="${search != null and !search.isEmpty()}">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Таблица источников -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Название</th>
+                                <th>RSS URL</th>
+                                <th>Статус</th>
+                                <th>Последнее обновление</th>
+                                <th>Ошибки</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="source : ${sources.content}">
+                                <td th:text="${source.id}">1</td>
+                                <td>
+                                    <strong th:text="${source.name}">Название источника</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        <a th:href="${source.websiteUrl}" 
+                                           th:if="${source.websiteUrl != null and !source.websiteUrl.isEmpty()}"
+                                           th:text="${source.websiteUrl}">
+                                            Сайт источника
+                                        </a>
+                                    </small>
+                                </td>
+                                <td>
+                                    <small class="text-muted" th:text="${source.rssUrl}">RSS URL</small>
+                                </td>
+                                <td>
+                                    <span th:if="${source.active}" class="badge bg-success">
+                                        <i class="fas fa-check"></i> Активен
+                                    </span>
+                                    <span th:unless="${source.active}" class="badge bg-danger">
+                                        <i class="fas fa-times"></i> Отключен
+                                    </span>
+                                </td>
+                                <td>
+                                    <span th:if="${source.lastUpdated != null}" 
+                                          th:text="${#temporals.format(source.lastUpdated, 'dd.MM.yyyy HH:mm')}">
+                                        01.01.2026 12:00
+                                    </span>
+                                    <span th:unless="${source.lastUpdated != null}" class="text-muted">
+                                        Никогда
+                                    </span>
+                                </td>
+                                <td>
+                                    <span th:if="${source.errorCount > 0}" class="badge bg-warning text-dark">
+                                        <i class="fas fa-exclamation-triangle"></i> 
+                                        <span th:text="${source.errorCount}">0</span>
+                                    </span>
+                                    <span th:unless="${source.errorCount > 0}" class="badge bg-success">
+                                        <i class="fas fa-check"></i> OK
+                                    </span>
+                                    <div th:if="${source.lastError != null}" class="mt-1">
+                                        <small class="text-danger" th:text="${source.lastError}">Последняя ошибка</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <!-- Кнопка редактирования -->
+                                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                data-bs-toggle="modal" 
+                                                th:data-bs-target="'#editSourceModal' + ${source.id}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        
+                                        <!-- Кнопка парсинга -->
+                                        <form th:action="@{/admin/sources/{id}/parse(id=${source.id})}" 
+                                              method="post" style="display: inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-info" 
+                                                    title="Парсить сейчас">
+                                                <i class="fas fa-sync"></i>
+                                            </button>
+                                        </form>
+                                        
+                                        <!-- Кнопка активации/деактивации -->
+                                        <form th:action="@{/admin/sources/{id}/toggle-status(id=${source.id})}" 
+                                              method="post" style="display: inline;">
+                                            <button type="submit" 
+                                                    th:class="${source.active} ? 'btn btn-sm btn-outline-warning' : 'btn btn-sm btn-outline-success'"
+                                                    th:title="${source.active} ? 'Отключить' : 'Активировать'">
+                                                <i th:class="${source.active} ? 'fas fa-pause' : 'fas fa-play'"></i>
+                                            </button>
+                                        </form>
+                                        
+                                        <!-- Кнопка сброса ошибок -->
+                                        <form th:if="${source.errorCount > 0}"
+                                              th:action="@{/admin/sources/{id}/reset-errors(id=${source.id})}" 
+                                              method="post" style="display: inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary" 
+                                                    title="Сбросить ошибки">
+                                                <i class="fas fa-eraser"></i>
+                                            </button>
+                                        </form>
+                                        
+                                        <!-- Кнопка удаления -->
+                                        <form th:action="@{/admin/sources/{id}/delete(id=${source.id})}" 
+                                              method="post" style="display: inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                    onclick="return confirm('Удалить этот источник?')"
+                                                    title="Удалить">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Пагинация -->
+                <nav th:if="${sources.totalPages > 1}">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                            <a class="page-link" th:href="@{/admin/sources(page=${currentPage - 1}, search=${search})}">
+                                Предыдущая
+                            </a>
+                        </li>
+                        
+                        <li th:each="pageNum : ${#numbers.sequence(0, totalPages - 1)}" 
+                            class="page-item" th:classappend="${pageNum == currentPage} ? 'active'">
+                            <a class="page-link" th:href="@{/admin/sources(page=${pageNum}, search=${search})}" 
+                               th:text="${pageNum + 1}">1</a>
+                        </li>
+                        
+                        <li class="page-item" th:classappend="${currentPage == totalPages - 1} ? 'disabled'">
+                            <a class="page-link" th:href="@{/admin/sources(page=${currentPage + 1}, search=${search})}">
+                                Следующая
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </main>
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления источника -->
+    <div class="modal fade" id="addSourceModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form th:action="@{/admin/sources}" method="post">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Добавить RSS источник</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="addName" class="form-label">Название источника</label>
+                            <input type="text" class="form-control" id="addName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="addRssUrl" class="form-label">RSS URL</label>
+                            <input type="url" class="form-control" id="addRssUrl" name="rssUrl" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="addWebsiteUrl" class="form-label">Сайт источника (необязательно)</label>
+                            <input type="url" class="form-control" id="addWebsiteUrl" name="websiteUrl">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-success">Добавить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальные окна редактирования источников -->
+    <div th:each="source : ${sources.content}" class="modal fade" th:id="'editSourceModal' + ${source.id}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form th:action="@{/admin/sources/{id}/update(id=${source.id})}" method="post">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Редактировать источник</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Название источника</label>
+                            <input type="text" class="form-control" name="name" th:value="${source.name}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">RSS URL</label>
+                            <input type="url" class="form-control" name="rssUrl" th:value="${source.rssUrl}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Сайт источника</label>
+                            <input type="url" class="form-control" name="websiteUrl" th:value="${source.websiteUrl}">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" name="active" 
+                                   th:checked="${source.active}">
+                            <label class="form-check-label">Активен</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

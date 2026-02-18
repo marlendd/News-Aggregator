@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: html}">
+<head>
+    <th:block th:fragment="head-extra">
+        <style>
+            .article-content {
+                line-height: 1.8;
+                font-size: 1.1rem;
+            }
+            .article-meta {
+                border-bottom: 1px solid #dee2e6;
+                padding-bottom: 1rem;
+                margin-bottom: 2rem;
+            }
+            .related-articles .card {
+                transition: transform 0.2s;
+            }
+            .related-articles .card:hover {
+                transform: translateY(-2px);
+            }
+        </style>
+    </th:block>
+</head>
+<body class="article-view-page">
+    <th:block th:fragment="content">
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Article Header -->
+                <div class="article-meta">
+                    <nav aria-label="breadcrumb" class="article-breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a th:href="@{/}">Главная</a></li>
+                            <li class="breadcrumb-item"><a th:href="@{/news}">Новости</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Статья</li>
+                        </ol>
+                    </nav>
+                    
+                    <div class="mb-3" th:if="${article.category}">
+                        <span class="badge category-badge-article" 
+                              th:style="'background-color: ' + ${article.category.colorCode}"
+                              th:text="${article.category.name}">
+                            Категория
+                        </span>
+                    </div>
+                    
+                    <h1 class="article-title-contrast" th:text="${article.title}">
+                        Заголовок статьи
+                    </h1>
+                    
+                    <div class="d-flex flex-wrap align-items-center article-meta-contrast mb-3">
+                        <span th:if="${article.source}" class="me-3">
+                            <i class="bi bi-globe"></i> <span th:text="${article.source.name}">Источник</span>
+                        </span>
+                        <span class="me-3">
+                            <i class="bi bi-calendar"></i> 
+                            <span th:text="${#temporals.format(article.publishedAt, 'dd MMMM yyyy, HH:mm')}">01 января 2026, 12:00</span>
+                        </span>
+                        <span th:if="${article.createdBy}" class="me-3">
+                            <i class="bi bi-person"></i> <span th:text="${article.createdBy.username}">Автор</span>
+                        </span>
+                    </div>
+                    
+                    <!-- Article Image -->
+                    <div class="mb-4" th:if="${article.imageUrl}">
+                        <img th:src="${article.imageUrl}" 
+                             th:alt="${article.title}" 
+                             class="article-view-image"
+                             onerror="this.src='/images/articles/default-news.svg'">
+                    </div>
+                </div>
+                
+                <!-- Article Summary -->
+                <div class="alert alert-info-contrast alert-permanent" th:if="${article.summary}" style="position: relative; z-index: 1;">
+                    <h6 class="alert-heading">
+                        <i class="bi bi-info-circle"></i> Краткое содержание
+                    </h6>
+                    <p class="mb-0" th:text="${article.summary}">Краткое описание статьи</p>
+                </div>
+                
+                <!-- Article Content -->
+                <div class="article-content-contrast" th:utext="${article.content}">
+                    Содержимое статьи...
+                </div>
+                
+                <!-- Article Actions -->
+                <div class="mt-4 pt-4 border-top article-actions-contrast">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex gap-2 flex-wrap">
+                            <!-- Кнопка сохранения для авторизованных пользователей -->
+                            <div sec:authorize="isAuthenticated()">
+                                <form th:if="${!isArticleSaved}" th:action="@{/user/save-article}" method="post" style="display: inline;">
+                                    <input type="hidden" name="articleId" th:value="${article.id}">
+                                    <input type="hidden" name="returnUrl" th:value="@{/news/{id}(id=${article.id})}">
+                                    <button type="submit" class="btn btn-outline-primary">
+                                        <i class="bi bi-bookmark"></i> Сохранить
+                                    </button>
+                                </form>
+                                
+                                <form th:if="${isArticleSaved}" th:action="@{/user/unsave-article}" method="post" style="display: inline;">
+                                    <input type="hidden" name="articleId" th:value="${article.id}">
+                                    <input type="hidden" name="returnUrl" th:value="@{/news/{id}(id=${article.id})}">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-bookmark-fill"></i> Сохранено
+                                    </button>
+                                </form>
+                            </div>
+                            
+                            <!-- Кнопка просмотра оригинала -->
+                            <a th:if="${article.sourceUrl}" 
+                               th:href="${article.sourceUrl}" 
+                               class="btn btn-outline-info"
+                               target="_blank"
+                               rel="noopener noreferrer">
+                                <i class="bi bi-box-arrow-up-right"></i> Читать оригинал
+                            </a>
+                            
+                            <!-- Кнопки для редакторов (но не администраторов) -->
+                            <div sec:authorize="hasRole('EDITOR') and !hasRole('ADMIN')" class="d-flex gap-2">
+                                <a th:href="@{/editor/articles/{id}/edit(id=${article.id})}" 
+                                   class="btn btn-outline-warning">
+                                    <i class="bi bi-pencil"></i> Редактировать
+                                </a>
+                                
+                                <button type="button" 
+                                        class="btn btn-outline-danger" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#deleteArticleModal">
+                                    <i class="bi bi-trash"></i> Удалить
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <a th:href="@{/news}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> К списку новостей
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Модальное окно подтверждения удаления -->
+                <div class="modal fade" id="deleteArticleModal" tabindex="-1" sec:authorize="hasRole('EDITOR') and !hasRole('ADMIN')">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title">
+                                    <i class="bi bi-exclamation-triangle"></i> Подтверждение удаления
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="text-high-contrast">
+                                    <strong>Внимание!</strong> Вы собираетесь удалить статью:
+                                </p>
+                                <p class="text-medium-contrast">
+                                    <strong th:text="${article.title}">Заголовок статьи</strong>
+                                </p>
+                                <p class="text-danger">
+                                    <i class="bi bi-exclamation-circle"></i> Это действие нельзя отменить!
+                                </p>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="confirmDelete">
+                                    <label class="form-check-label text-high-contrast" for="confirmDelete">
+                                        Я понимаю последствия и хочу удалить эту статью
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                <form th:action="@{/editor/articles/{id}/delete(id=${article.id})}" method="post" style="display: inline;">
+                                    <button type="submit" class="btn btn-danger" id="confirmDeleteBtn" disabled>
+                                        <i class="bi bi-trash"></i> Удалить статью
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- JavaScript для модального окна -->
+                <script sec:authorize="hasRole('EDITOR') and !hasRole('ADMIN')">
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const confirmCheckbox = document.getElementById('confirmDelete');
+                        const confirmButton = document.getElementById('confirmDeleteBtn');
+                        
+                        if (confirmCheckbox && confirmButton) {
+                            confirmCheckbox.addEventListener('change', function() {
+                                confirmButton.disabled = !this.checked;
+                            });
+                            
+                            // Сброс чекбокса при закрытии модального окна
+                            const modal = document.getElementById('deleteArticleModal');
+                            if (modal) {
+                                modal.addEventListener('hidden.bs.modal', function() {
+                                    confirmCheckbox.checked = false;
+                                    confirmButton.disabled = true;
+                                });
+                            }
+                        }
+                    });
+                </script>
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Related Articles -->
+                <div class="related-articles" th:if="${relatedArticles != null and !relatedArticles.empty}">
+                    <h5 class="sidebar-title-contrast">
+                        <i class="bi bi-collection text-primary"></i> Похожие статьи
+                    </h5>
+                    
+                    <div class="mb-3" th:each="related : ${relatedArticles}">
+                        <div class="card related-article-card">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <a th:href="@{/news/{id}(id=${related.id})}" 
+                                       th:text="${related.title}">
+                                        Заголовок похожей статьи
+                                    </a>
+                                </h6>
+                                <p class="card-text" 
+                                   th:text="${related.summary != null and !related.summary.isEmpty() ? related.summary : related.getShortContent(150)}">
+                                    Краткое описание...
+                                </p>
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar"></i>
+                                    <span th:text="${#temporals.format(related.publishedAt, 'dd.MM.yyyy')}">01.01.2026</span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Categories Widget -->
+                <div class="mt-4" th:if="${categories != null and !categories.empty}">
+                    <h5 class="sidebar-title-contrast">
+                        <i class="bi bi-tags text-primary"></i> Категории
+                    </h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a th:each="category : ${categories}" 
+                           th:href="@{/category/{id}(id=${category.id})}"
+                           class="btn category-button-contrast btn-sm"
+                           th:text="${category.name}">
+                            Категория
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+</body>
+</html>

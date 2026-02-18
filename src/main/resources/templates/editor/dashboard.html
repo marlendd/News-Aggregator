@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: html}">
+<head>
+    <th:block th:fragment="head-extra">
+        <style>
+            .stats-card {
+                transition: transform 0.2s;
+            }
+            .stats-card:hover {
+                transform: translateY(-5px);
+            }
+            .stats-icon {
+                font-size: 2.5rem;
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+    <th:block th:fragment="content">
+        <!-- Заголовок -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-pencil-square text-warning"></i> Панель редактора</h2>
+            <div class="btn-group">
+                <a th:href="@{/editor/moderate}" class="btn btn-outline-primary">
+                    <i class="bi bi-eye"></i> Модерация
+                </a>
+            </div>
+        </div>
+        
+        <!-- Статистические карточки -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card stats-card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-newspaper stats-icon"></i>
+                        <h3 th:text="${totalArticles}">0</h3>
+                        <p class="mb-0">Всего статей</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="card stats-card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-check-circle stats-icon"></i>
+                        <h3 th:text="${publishedArticles}">0</h3>
+                        <p class="mb-0">Опубликовано</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="card stats-card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-clock stats-icon"></i>
+                        <h3 th:text="${pendingArticles}">0</h3>
+                        <p class="mb-0">На модерации</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="card stats-card bg-info text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-percent stats-icon"></i>
+                        <h3 th:text="${totalArticles > 0 ? (publishedArticles * 100 / totalArticles) : 0} + '%'">0%</h3>
+                        <p class="mb-0">Одобрено</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Основной контент -->
+        <div class="row">
+            <!-- Статьи на модерации -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="bi bi-clock"></i> Статьи на модерации</h5>
+                        <a th:href="@{/editor/moderate}" class="btn btn-sm btn-outline-primary">Все статьи</a>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${pendingArticlesList.empty}" class="text-muted text-center py-3">
+                            <i class="bi bi-check-circle display-4 text-success"></i>
+                            <h5 class="mt-3">Нет статей на модерации</h5>
+                            <p>Все статьи обработаны!</p>
+                        </div>
+                        
+                        <div th:unless="${pendingArticlesList.empty}">
+                            <div th:each="article : ${pendingArticlesList}" class="border-bottom py-3">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">
+                                            <a th:href="@{/news/{id}(id=${article.id})}" 
+                                               th:text="${article.title}" 
+                                               class="text-decoration-none">Заголовок статьи</a>
+                                        </h6>
+                                        <p class="text-muted small mb-2" 
+                                           th:text="${#strings.abbreviate(article.summary, 120)}">Краткое описание статьи...</p>
+                                        <div class="d-flex align-items-center text-muted small">
+                                            <i class="bi bi-calendar me-1"></i>
+                                            <span th:text="${#temporals.format(article.createdAt, 'dd.MM.yyyy HH:mm')}">01.01.2026 12:00</span>
+                                            <span th:if="${article.source != null}" class="ms-3">
+                                                <i class="bi bi-link me-1"></i>
+                                                <span th:text="${article.source.name}">Источник</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="ms-3">
+                                        <div class="btn-group-vertical">
+                                            <form th:action="@{/editor/articles/{id}/approve(id=${article.id})}" method="post" style="display: inline;">
+                                                <button type="submit" class="btn btn-sm btn-success" title="Одобрить">
+                                                    <i class="bi bi-check"></i>
+                                                </button>
+                                            </form>
+                                            <form th:action="@{/editor/articles/{id}/reject(id=${article.id})}" method="post" style="display: inline;">
+                                                <button type="submit" class="btn btn-sm btn-danger mt-1" 
+                                                        title="Отклонить"
+                                                        th:onclick="'return confirm(\'Отклонить статью?\')'">
+                                                    <i class="bi bi-x"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Последние опубликованные -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-check-circle"></i> Недавно опубликованные</h5>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${recentPublished.empty}" class="text-muted text-center py-3">
+                            Нет опубликованных статей
+                        </div>
+                        
+                        <div th:unless="${recentPublished.empty}">
+                            <div th:each="article : ${recentPublished}" class="border-bottom py-2">
+                                <h6 class="mb-1">
+                                    <a th:href="@{/news/{id}(id=${article.id})}" 
+                                       th:text="${#strings.abbreviate(article.title, 40)}" 
+                                       class="text-decoration-none">Заголовок</a>
+                                </h6>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar"></i>
+                                        <span th:text="${#temporals.format(article.createdAt, 'dd.MM HH:mm')}">01.01 12:00</span>
+                                    </small>
+                                    <span th:if="${article.category != null}" 
+                                          class="badge" 
+                                          th:style="'background-color: ' + ${article.category.colorCode}"
+                                          th:text="${article.category.name}">Категория</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Быстрые действия -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-lightning"></i> Быстрые действия</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <a th:href="@{/editor/moderate?status=PENDING}" class="btn btn-outline-warning w-100">
+                                    <i class="bi bi-clock"></i> Статьи на модерации
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <a th:href="@{/editor/moderate?status=PUBLISHED}" class="btn btn-outline-success w-100">
+                                    <i class="bi bi-check-circle"></i> Опубликованные
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <a th:href="@{/editor/moderate?status=REJECTED}" class="btn btn-outline-danger w-100">
+                                    <i class="bi bi-x-circle"></i> Отклоненные
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <a th:href="@{/}" class="btn btn-outline-secondary w-100">
+                                    <i class="bi bi-house"></i> На главную
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+</body>
+</html>

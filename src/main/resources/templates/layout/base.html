@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle != null ? pageTitle + ' - Агрегатор новостей' : 'Агрегатор новостей'}">Агрегатор новостей</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+    
+    <!-- Global text visibility fix -->
+    <style>
+        body {
+            color: #212529 !important;
+            background-color: #ffffff !important;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            color: #212529 !important;
+        }
+        .text-muted {
+            color: #6c757d !important;
+        }
+        footer {
+            background-color: #f8f9fa !important;
+            color: #212529 !important;
+        }
+        footer h5 {
+            color: #212529 !important;
+        }
+        
+        /* Кнопка "Наверх" */
+        #scrollToTop {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            display: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        #scrollToTop:hover {
+            background-color: #0b5ed7;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        #scrollToTop i {
+            font-size: 1.5rem;
+        }
+    </style>
+    
+    <th:block th:fragment="head-extra">
+        <!-- Дополнительные стили и скрипты для конкретных страниц -->
+    </th:block>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" th:href="@{/}">
+                <i class="bi bi-newspaper"></i> Агрегатор новостей
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/}">
+                            <i class="bi bi-house"></i> Главная
+                        </a>
+                    </li>
+                    <!-- Скрываем "Новости" для админов -->
+                    <li class="nav-item" sec:authorize="!hasRole('ADMIN')">
+                        <a class="nav-link" th:href="@{/news}">
+                            <i class="bi bi-list-ul"></i> Новости
+                        </a>
+                    </li>
+                    <!-- Скрываем "Категории" для админов -->
+                    <li class="nav-item dropdown" th:if="${categories != null and !categories.empty}" sec:authorize="!hasRole('ADMIN')">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-tags"></i> Категории
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li th:each="category : ${categories}">
+                                <a class="dropdown-item" th:href="@{/category/{id}(id=${category.id})}" th:text="${category.name}">Категория</a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+                
+                <!-- Search Form -->
+                <form class="d-flex me-3" th:action="@{/search}" method="get">
+                    <input class="form-control me-2" type="search" name="q" placeholder="Поиск новостей..." 
+                           th:value="${searchQuery}" style="width: 250px;">
+                    <button class="btn btn-outline-light" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </form>
+                
+                <!-- User Menu -->
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown" sec:authorize="isAuthenticated()">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> <span sec:authentication="name">Пользователь</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" th:href="@{/user/profile}"><i class="bi bi-person"></i> Профиль</a></li>
+                            <li><a class="dropdown-item" th:href="@{/user/saved}"><i class="bi bi-bookmark"></i> Сохраненные</a></li>
+                            <li><a class="dropdown-item" th:href="@{/user/preferences}"><i class="bi bi-gear"></i> Настройки</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li sec:authorize="hasRole('EDITOR') and !hasRole('ADMIN')">
+                                <a class="dropdown-item" th:href="@{/editor}"><i class="bi bi-pencil-square"></i> Редактор</a>
+                            </li>
+                            <li sec:authorize="hasRole('ADMIN')">
+                                <a class="dropdown-item" th:href="@{/admin}"><i class="bi bi-shield-check"></i> Администрирование</a>
+                            </li>
+                            <li sec:authorize="hasRole('EDITOR') or hasRole('ADMIN')"><hr class="dropdown-divider"></li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="d-inline">
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="bi bi-box-arrow-right"></i> Выйти
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item" sec:authorize="!isAuthenticated()">
+                        <a class="nav-link" th:href="@{/login}">
+                            <i class="bi bi-box-arrow-in-right"></i> Войти
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <main class="container my-4">
+        <!-- Breadcrumbs -->
+        <nav th:if="${breadcrumbs != null and !breadcrumbs.empty}" aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a th:href="@{/}"><i class="bi bi-house"></i> Главная</a>
+                </li>
+                <li th:each="crumb, iterStat : ${breadcrumbs}" 
+                    th:class="${iterStat.last} ? 'breadcrumb-item active' : 'breadcrumb-item'"
+                    th:aria-current="${iterStat.last} ? 'page' : null">
+                    <a th:if="${!iterStat.last and crumb.url != null}" 
+                       th:href="${crumb.url}" 
+                       th:text="${crumb.title}">Страница</a>
+                    <span th:if="${iterStat.last or crumb.url == null}" 
+                          th:text="${crumb.title}">Текущая страница</span>
+                </li>
+            </ol>
+        </nav>
+        
+        <!-- Alert Messages -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle"></i> <span th:text="${successMessage}">Успех</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> <span th:text="${errorMessage}">Ошибка</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
+        <div th:if="${infoMessage}" class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="bi bi-info-circle"></i> <span th:text="${infoMessage}">Информация</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
+        <!-- Page Content -->
+        <div th:replace="~{::content}">
+            <!-- Содержимое страницы -->
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Агрегатор новостей</h5>
+                    <p class="text-muted">Курсовой проект по разработке веб-приложений на Java</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="text-muted mb-0">
+                        &copy; 2026 News Aggregator. 
+                        <a th:href="@{/about}" class="text-decoration-none">О проекте</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Кнопка "Наверх" -->
+    <button id="scrollToTop" title="Наверх">
+        <i class="bi bi-arrow-up"></i>
+    </button>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script th:src="@{/js/app.js}"></script>
+    
+    <!-- Scroll to Top Script -->
+    <script>
+        // Показать/скрыть кнопку "Наверх"
+        window.addEventListener('scroll', function() {
+            const scrollToTopBtn = document.getElementById('scrollToTop');
+            if (window.pageYOffset > 300) {
+                scrollToTopBtn.style.display = 'block';
+            } else {
+                scrollToTopBtn.style.display = 'none';
+            }
+        });
+        
+        // Плавная прокрутка наверх
+        document.getElementById('scrollToTop').addEventListener('click', function() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    </script>
+    
+    <th:block th:fragment="scripts">
+        <!-- Дополнительные скрипты для конкретных страниц -->
+    </th:block>
+</body>
+</html>

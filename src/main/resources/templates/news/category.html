@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: html}">
+<head>
+    <th:block th:fragment="head-extra">
+        <style>
+            .category-header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 2rem 0;
+                margin-bottom: 2rem;
+                border-radius: 0.5rem;
+            }
+            .article-card {
+                transition: transform 0.2s;
+                height: 100%;
+            }
+            .article-card:hover {
+                transform: translateY(-5px);
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+    <th:block th:fragment="content">
+        <!-- Category Header -->
+        <div class="category-header text-center">
+            <div class="container">
+                <h1 class="display-4 fw-bold mb-2" th:text="${category.name}">Категория</h1>
+                <p class="lead mb-0" th:text="${category.description}">Описание категории</p>
+            </div>
+        </div>
+        
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a th:href="@{/}">Главная</a></li>
+                <li class="breadcrumb-item"><a th:href="@{/news}">Новости</a></li>
+                <li class="breadcrumb-item active" aria-current="page" th:text="${category.name}">Категория</li>
+            </ol>
+        </nav>
+        
+        <!-- Other Categories -->
+        <div class="row mb-4" th:if="${categories != null and categories.size() > 1}">
+            <div class="col-12">
+                <h6 class="mb-2">Другие категории:</h6>
+                <div class="d-flex flex-wrap gap-2">
+                    <a th:each="cat : ${categories}" 
+                       th:if="${cat.id != category.id}"
+                       th:href="@{/category/{id}(id=${cat.id})}"
+                       class="btn btn-outline-primary btn-sm"
+                       th:text="${cat.name}">
+                        Категория
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Articles Grid -->
+        <div class="row" th:if="${articles != null and articles.hasContent()}">
+            <div class="col-lg-4 col-md-6 mb-4" th:each="article : ${articles.content}">
+                <div class="card article-card h-100 shadow-sm">
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 
+                         style="height: 200px;" th:if="${article.imageUrl}">
+                        <img th:src="${article.imageUrl}" th:alt="${article.title}" 
+                             class="img-fluid" style="max-height: 100%; max-width: 100%; object-fit: cover;"
+                             onerror="this.src='/images/articles/default-news.svg'">
+                    </div>
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 
+                         style="height: 200px;" th:unless="${article.imageUrl}">
+                        <img src="/images/articles/default-news.svg" alt="Новости" class="img-fluid" style="max-height: 100%; max-width: 100%; object-fit: cover;">
+                    </div>
+                    
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">
+                            <a th:href="@{/news/{id}(id=${article.id})}" 
+                               class="text-decoration-none text-dark"
+                               th:text="${article.title}">
+                                Заголовок статьи
+                            </a>
+                        </h5>
+                        
+                        <p class="card-text text-muted flex-grow-1" 
+                           th:text="${article.summary != null and !article.summary.isEmpty() ? article.summary : article.getShortContent(150)}">
+                            Краткое описание статьи...
+                        </p>
+                        
+                        <div class="mt-auto">
+                            <div class="d-flex justify-content-between align-items-center text-muted small">
+                                <span th:if="${article.source}">
+                                    <i class="bi bi-globe"></i> <span th:text="${article.source.name}">Источник</span>
+                                </span>
+                                <span th:text="${#temporals.format(article.publishedAt, 'dd.MM.yyyy HH:mm')}">
+                                    01.01.2026 12:00
+                                </span>
+                            </div>
+                            <div class="mt-2">
+                                <a th:href="@{/news/{id}(id=${article.id})}" class="btn btn-primary btn-sm">
+                                    Читать далее <i class="bi bi-arrow-right"></i>
+                                </a>
+                                
+                                <!-- Кнопка сохранения для авторизованных пользователей -->
+                                <div sec:authorize="isAuthenticated()" style="display: inline;">
+                                    <form th:if="${savedArticleIds == null or !savedArticleIds.contains(article.id)}" 
+                                          th:action="@{/user/save-article}" method="post" style="display: inline;">
+                                        <input type="hidden" name="articleId" th:value="${article.id}">
+                                        <input type="hidden" name="returnUrl" th:value="@{/category/{id}(id=${category.id}, page=${currentPage})}">
+                                        <button type="submit" class="btn btn-outline-success btn-sm">
+                                            <i class="bi bi-bookmark"></i>
+                                        </button>
+                                    </form>
+                                    
+                                    <form th:if="${savedArticleIds != null and savedArticleIds.contains(article.id)}" 
+                                          th:action="@{/user/unsave-article}" method="post" style="display: inline;">
+                                        <input type="hidden" name="articleId" th:value="${article.id}">
+                                        <input type="hidden" name="returnUrl" th:value="@{/category/{id}(id=${category.id}, page=${currentPage})}">
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            <i class="bi bi-bookmark-fill"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- No Articles Message -->
+        <div class="row" th:if="${articles == null or !articles.hasContent()}">
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="bi bi-newspaper text-muted" style="font-size: 4rem;"></i>
+                    <h3 class="text-muted mt-3">В этой категории пока нет новостей</h3>
+                    <p class="text-muted">Проверьте позже или посмотрите другие категории</p>
+                    <a th:href="@{/news}" class="btn btn-primary">
+                        <i class="bi bi-arrow-left"></i> Все новости
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="row" th:if="${articles != null and articles.hasContent() and articles.totalPages > 1}">
+            <div class="col-12">
+                <nav aria-label="Навигация по страницам">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                            <a class="page-link" th:href="@{/category/{id}(id=${category.id}, page=${currentPage - 1})}">
+                                <i class="bi bi-chevron-left"></i> Предыдущая
+                            </a>
+                        </li>
+                        
+                        <li class="page-item" 
+                            th:each="pageNum : ${#numbers.sequence(0, totalPages - 1)}"
+                            th:classappend="${pageNum == currentPage} ? 'active'">
+                            <a class="page-link" th:href="@{/category/{id}(id=${category.id}, page=${pageNum})}" th:text="${pageNum + 1}">1</a>
+                        </li>
+                        
+                        <li class="page-item" th:classappend="${currentPage >= totalPages - 1} ? 'disabled'">
+                            <a class="page-link" th:href="@{/category/{id}(id=${category.id}, page=${currentPage + 1})}">
+                                Следующая <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </th:block>
+</body>
+</html>

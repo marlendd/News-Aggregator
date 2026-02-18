@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: html}">
+<head>
+    <th:block th:fragment="head-extra">
+        <style>
+            .article-card {
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            .article-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+            
+            /* ULTRA AGGRESSIVE EDITOR THUMBNAIL STYLES - OVERRIDE EVERYTHING */
+            .editor-article-thumbnail,
+            .editor-image-container .editor-article-thumbnail,
+            .col-md-2 .editor-article-thumbnail,
+            img.editor-article-thumbnail {
+                width: 80px !important;
+                height: 80px !important;
+                max-width: 80px !important;
+                max-height: 80px !important;
+                min-width: 80px !important;
+                min-height: 80px !important;
+                object-fit: cover !important;
+                border-radius: 8px !important;
+                border: 1px solid #dee2e6 !important;
+                display: block !important;
+                position: relative !important;
+                overflow: hidden !important;
+                flex-shrink: 0 !important;
+                flex-grow: 0 !important;
+                margin: 0 auto !important;
+            }
+            
+            .editor-article-placeholder,
+            .editor-image-container .editor-article-placeholder,
+            .col-md-2 .editor-article-placeholder,
+            div.editor-article-placeholder {
+                width: 80px !important;
+                height: 80px !important;
+                max-width: 80px !important;
+                max-height: 80px !important;
+                min-width: 80px !important;
+                min-height: 80px !important;
+                background: linear-gradient(45deg, #f8f9fa, #e9ecef) !important;
+                border-radius: 8px !important;
+                border: 1px solid #dee2e6 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                color: #6c757d !important;
+                font-size: 1.5rem !important;
+                flex-shrink: 0 !important;
+                flex-grow: 0 !important;
+                position: relative !important;
+                overflow: hidden !important;
+                margin: 0 auto !important;
+            }
+            
+            /* ULTRA AGGRESSIVE EDITOR IMAGE CONTAINER STYLES */
+            .editor-image-container,
+            .col-md-2.editor-image-container,
+            div.editor-image-container {
+                width: 80px !important;
+                max-width: 80px !important;
+                min-width: 80px !important;
+                text-align: center !important;
+                padding: 8px !important;
+                box-sizing: border-box !important;
+                overflow: hidden !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                flex-shrink: 0 !important;
+                flex-grow: 0 !important;
+            }
+        </style>
+    </th:block>
+</head>
+<body class="editor-page">
+    <th:block th:fragment="content">
+        <!-- Заголовок и навигация -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a th:href="@{/editor}">Редактор</a></li>
+                        <li class="breadcrumb-item active">Модерация статей</li>
+                    </ol>
+                </nav>
+                <h2 class="title-high-contrast"><i class="bi bi-eye"></i> Модерация статей</h2>
+            </div>
+        </div>
+        
+        <!-- Фильтры -->
+        <div class="card editor-filter-card mb-4">
+            <div class="card-body">
+                <form th:action="@{/editor/moderate}" method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="statusFilter" class="form-label text-high-contrast">Статус статьи</label>
+                        <select class="form-select" id="statusFilter" name="status">
+                            <option value="PENDING" th:selected="${selectedStatus == 'PENDING'}">На модерации</option>
+                            <option value="PUBLISHED" th:selected="${selectedStatus == 'PUBLISHED'}">Опубликованные</option>
+                            <option value="REJECTED" th:selected="${selectedStatus == 'REJECTED'}">Отклоненные</option>
+                            <option value="DRAFT" th:selected="${selectedStatus == 'DRAFT'}">Черновики</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="categoryFilter" class="form-label text-high-contrast">Категория</label>
+                        <select class="form-select" id="categoryFilter" name="categoryId">
+                            <option value="">Все категории</option>
+                            <option th:each="category : ${categories}" 
+                                    th:value="${category.id}" 
+                                    th:text="${category.name}"
+                                    th:selected="${selectedCategoryId != null and selectedCategoryId == category.id}">
+                                Категория
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="sourceFilter" class="form-label text-high-contrast">Источник</label>
+                        <select class="form-select" id="sourceFilter" name="sourceId">
+                            <option value="">Все источники</option>
+                            <option th:each="source : ${sources}" 
+                                    th:value="${source.id}" 
+                                    th:text="${source.name}"
+                                    th:selected="${selectedSourceId != null and selectedSourceId == source.id}">
+                                Источник
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-funnel"></i> Применить фильтр
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-high-contrast">Быстрые фильтры</label>
+                        <div class="btn-group w-100" role="group">
+                            <a th:href="@{/editor/moderate?status=PENDING}" 
+                               class="btn btn-sm btn-outline-warning">На модерации</a>
+                            <a th:href="@{/editor/moderate?status=PUBLISHED}" 
+                               class="btn btn-sm btn-outline-success">Опубликованные</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Сообщения -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+            <i class="bi bi-check-circle"></i> <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+            <i class="bi bi-exclamation-triangle"></i> <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
+        <!-- Массовые действия -->
+        <div th:if="${selectedStatus == 'PENDING' and !articles.empty}" class="mb-3">
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectAllModal">
+                <i class="bi bi-x-circle"></i> Отклонить все статьи на модерации
+            </button>
+            <span class="text-muted ms-2">
+                (Всего статей на модерации: <span th:text="${articles.totalElements}">0</span>)
+            </span>
+        </div>
+        
+        <!-- Модальное окно подтверждения массового отклонения -->
+        <div class="modal fade" id="rejectAllModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-exclamation-triangle"></i> Подтверждение массового отклонения
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-high-contrast">
+                            <strong>Внимание!</strong> Вы собираетесь отклонить <strong>ВСЕ</strong> статьи, находящиеся на модерации.
+                        </p>
+                        <p class="text-medium-contrast">
+                            Всего будет отклонено статей: <strong th:text="${articles.totalElements}">0</strong>
+                        </p>
+                        <p class="text-danger">
+                            <i class="bi bi-exclamation-circle"></i> Это действие нельзя отменить!
+                        </p>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="confirmRejectAll">
+                            <label class="form-check-label text-high-contrast" for="confirmRejectAll">
+                                Я понимаю последствия и хочу отклонить все статьи
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <form th:action="@{/editor/articles/reject-all}" method="post" style="display: inline;">
+                            <input type="hidden" name="categoryId" th:value="${selectedCategoryId}">
+                            <button type="submit" class="btn btn-danger" id="confirmRejectAllBtn" disabled>
+                                <i class="bi bi-x-circle"></i> Отклонить все
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Список статей -->
+        <div class="row">
+            <div th:if="${articles.empty}" class="col-12">
+                <div class="text-center py-5">
+                    <i class="bi bi-newspaper display-1 text-muted"></i>
+                    <h4 class="text-medium-contrast mt-3">Статьи не найдены</h4>
+                    <p class="text-medium-contrast">Попробуйте изменить фильтры</p>
+                </div>
+            </div>
+            
+            <div th:unless="${articles.empty}" th:each="article : ${articles.content}" class="col-12 mb-4">
+                <div class="card editor-article-card">
+                    <div class="editor-card-content">
+                        <div class="row">
+                            <!-- Изображение -->
+                            <div class="col-md-2 editor-image-container">
+                                <div th:if="${article.imageUrl != null and !article.imageUrl.isEmpty()}">
+                                    <img th:src="${article.imageUrl}" 
+                                         class="editor-article-thumbnail" 
+                                         alt="Изображение статьи"
+                                         onerror="this.style.display='none'; this.parentElement.nextElementSibling.style.display='flex';">
+                                </div>
+                                <div class="editor-article-placeholder"
+                                     th:if="${article.imageUrl == null or article.imageUrl.isEmpty()}"
+                                     style="display: flex;">
+                                    <i class="bi bi-image"></i>
+                                </div>
+                            </div>
+                            
+                            <!-- Основная информация -->
+                            <div class="col-md-7">
+                                <h5 class="card-title">
+                                    <a th:href="@{/news/{id}(id=${article.id})}" 
+                                       th:text="${article.title}" 
+                                       class="text-decoration-none title-high-contrast">Заголовок статьи</a>
+                                </h5>
+                                <p class="card-text text-medium-contrast" 
+                                   th:text="${#strings.abbreviate(article.summary, 200)}">Краткое описание статьи...</p>
+                                
+                                <div class="d-flex align-items-center editor-card-metadata mb-2">
+                                    <i class="bi bi-calendar me-1"></i>
+                                    <span th:text="${#temporals.format(article.createdAt, 'dd.MM.yyyy HH:mm')}">01.01.2026 12:00</span>
+                                    
+                                    <span th:if="${article.source != null}" class="ms-3">
+                                        <i class="bi bi-link me-1"></i>
+                                        <span th:text="${article.source.name}">Источник</span>
+                                    </span>
+                                </div>
+                                
+                                <div class="d-flex align-items-center">
+                                    <span th:switch="${article.status}" class="me-2">
+                                        <span th:case="'PUBLISHED'" class="badge badge-published">
+                                            <i class="bi bi-check-circle"></i> Опубликована
+                                        </span>
+                                        <span th:case="'PENDING'" class="badge badge-pending">
+                                            <i class="bi bi-clock"></i> На модерации
+                                        </span>
+                                        <span th:case="'REJECTED'" class="badge badge-rejected">
+                                            <i class="bi bi-x-circle"></i> Отклонена
+                                        </span>
+                                        <span th:case="'DRAFT'" class="badge badge-draft">
+                                            <i class="bi bi-file-text"></i> Черновик
+                                        </span>
+                                    </span>
+                                    
+                                    <span th:if="${article.category != null}" 
+                                          class="badge category-badge-contrast" 
+                                          th:style="'background-color: ' + ${article.category.colorCode}"
+                                          th:text="${article.category.name}">Категория</span>
+                                    <span th:unless="${article.category != null}" 
+                                          class="badge badge-draft">Без категории</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Действия -->
+                            <div class="col-md-3">
+                                <div class="editor-card-actions">
+                                    <div class="d-flex flex-column gap-2">
+                                        <!-- Кнопки модерации для статей на модерации -->
+                                        <div th:if="${article.status.name() == 'PENDING'}" class="btn-group editor-btn-group">
+                                            <button type="button" class="btn btn-success btn-sm editor-btn" 
+                                                    data-bs-toggle="modal" 
+                                                    th:data-bs-target="'#approveModal' + ${article.id}">
+                                                <i class="bi bi-check"></i> Одобрить
+                                            </button>
+                                            <form th:action="@{/editor/articles/{id}/reject(id=${article.id})}" 
+                                                  method="post" style="display: inline;">
+                                                <button type="submit" class="btn btn-danger btn-sm editor-btn"
+                                                        th:onclick="'return confirm(\'Отклонить статью \\'' + ${#strings.abbreviate(article.title, 30)} + '\\'?\')'">
+                                                    <i class="bi bi-x"></i> Отклонить
+                                                </button>
+                                            </form>
+                                        </div>
+                                        
+                                        <!-- Кнопки для других статусов -->
+                                        <div th:unless="${article.status.name() == 'PENDING'}" class="btn-group editor-btn-group">
+                                            <a th:href="@{/editor/articles/{id}/edit(id=${article.id})}" 
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-pencil"></i> Редактировать
+                                            </a>
+                                        </div>
+                                        
+                                        <!-- Общие действия -->
+                                        <div class="btn-group editor-btn-group">
+                                            <a th:href="@{/news/{id}(id=${article.id})}" 
+                                               class="btn btn-outline-info btn-sm">
+                                                <i class="bi bi-eye"></i> Просмотр
+                                            </a>
+                                            <a th:href="${article.sourceUrl}" 
+                                               class="btn btn-outline-secondary btn-sm">
+                                                <i class="bi bi-link-45deg"></i> Оригинал
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Модальное окно одобрения статьи -->
+                <div class="modal fade" th:id="'approveModal' + ${article.id}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form th:action="@{/editor/articles/{id}/approve(id=${article.id})}" method="post">
+                                <div class="modal-header">
+                                    <h5 class="modal-title title-high-contrast">
+                                        <i class="bi bi-check-circle"></i> Одобрить статью
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <h6 class="title-high-contrast" th:text="${article.title}">Заголовок статьи</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label text-high-contrast">Выберите категорию (необязательно)</label>
+                                        <select class="form-select" name="categoryId">
+                                            <option value="">Без категории</option>
+                                            <option th:each="category : ${categories}" 
+                                                    th:value="${category.id}" 
+                                                    th:text="${category.name}"
+                                                    th:selected="${article.category != null and article.category.id == category.id}">
+                                                Категория
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                    <button type="submit" class="btn btn-success editor-btn">
+                                        <i class="bi bi-check"></i> Одобрить и опубликовать
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Пагинация -->
+        <div th:if="${articles.totalPages > 1}" class="d-flex justify-content-center mt-4">
+            <nav>
+                <ul class="pagination">
+                    <li th:class="${articles.first} ? 'page-item disabled' : 'page-item'">
+                        <a class="page-link" th:href="@{/editor/moderate(page=${currentPage - 1}, status=${selectedStatus}, categoryId=${selectedCategoryId}, sourceId=${selectedSourceId})}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    
+                    <li th:each="pageNum : ${#numbers.sequence(0, articles.totalPages - 1)}"
+                        th:class="${pageNum == currentPage} ? 'page-item active' : 'page-item'">
+                        <a class="page-link" th:href="@{/editor/moderate(page=${pageNum}, status=${selectedStatus}, categoryId=${selectedCategoryId}, sourceId=${selectedSourceId})}" 
+                           th:text="${pageNum + 1}">1</a>
+                    </li>
+                    
+                    <li th:class="${articles.last} ? 'page-item disabled' : 'page-item'">
+                        <a class="page-link" th:href="@{/editor/moderate(page=${currentPage + 1}, status=${selectedStatus}, categoryId=${selectedCategoryId}, sourceId=${selectedSourceId})}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        
+        <!-- JavaScript для модального окна -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const confirmCheckbox = document.getElementById('confirmRejectAll');
+                const confirmButton = document.getElementById('confirmRejectAllBtn');
+                
+                if (confirmCheckbox && confirmButton) {
+                    confirmCheckbox.addEventListener('change', function() {
+                        confirmButton.disabled = !this.checked;
+                    });
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

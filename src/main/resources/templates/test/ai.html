@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тестирование ИИ - Агрегатор новостей</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+        }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .alert {
+            border-radius: 12px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">🤖 Тестирование ИИ (LM Studio)</h1>
+                
+                <!-- Статус API -->
+                <div class="alert" th:classappend="${available} ? 'alert-success' : (${configured} ? 'alert-warning' : 'alert-danger')">
+                    <h5 th:if="${available}">✅ LM Studio подключен и работает</h5>
+                    <h5 th:if="${configured and !available}">⚠️ LM Studio настроен, но недоступен</h5>
+                    <h5 th:if="${!configured}">❌ LM Studio не настроен</h5>
+                    
+                    <p th:if="${available}">
+                        API доступен по адресу: <code>http://localhost:1234/v1</code><br>
+                        <span th:if="${models != null and !models.empty}">
+                            Доступные модели: <strong th:text="${#strings.listJoin(models, ', ')}"></strong>
+                        </span>
+                    </p>
+                    <p th:if="${configured and !available}">
+                        Убедитесь, что LM Studio запущен и сервер активен.<br>
+                        <small>Используется fallback-категоризация на основе ключевых слов.</small>
+                    </p>
+                    <p th:if="${!configured}">
+                        Включите LM Studio в <code>application.yml</code>: <code>app.lmstudio.enabled: true</code>
+                    </p>
+                </div>
+
+                <!-- Инструкция по настройке -->
+                <div th:if="${!available}" class="alert alert-info">
+                    <h5>📖 Как настроить LM Studio:</h5>
+                    <ol>
+                        <li>Скачайте и установите <a href="https://lmstudio.ai/" target="_blank">LM Studio</a></li>
+                        <li>Загрузите модель (рекомендуется: Qwen2.5-7B, Mistral-7B или Llama-3.1-8B)</li>
+                        <li>Запустите локальный сервер в LM Studio (вкладка "Local Server")</li>
+                        <li>Убедитесь, что сервер работает на <code>http://localhost:1234</code></li>
+                        <li>Обновите страницу для проверки подключения</li>
+                    </ol>
+                </div>
+
+                <!-- Результат -->
+                <div th:if="${result}" class="alert" th:classappend="${success} ? 'alert-success' : 'alert-danger'">
+                    <h5 th:if="${success}">✅ Результат:</h5>
+                    <h5 th:unless="${success}">❌ Ошибка:</h5>
+                    <p th:text="${result}"></p>
+                </div>
+
+                <div class="row">
+                    <!-- Тест категоризации -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>📂 Тест категоризации</h5>
+                            </div>
+                            <div class="card-body">
+                                <form th:action="@{/test/categorize}" method="post">
+                                    <div class="mb-3">
+                                        <label for="title" class="form-label">Заголовок статьи:</label>
+                                        <input type="text" class="form-control" id="title" name="title" 
+                                               th:value="${title}" 
+                                               placeholder="Например: Новые технологии в программировании">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="content1" class="form-label">Содержание:</label>
+                                        <textarea class="form-control" id="content1" name="content" rows="4" 
+                                                  th:text="${content}"
+                                                  placeholder="Введите текст статьи для определения категории..."></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">🔍 Определить категорию</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Тест суммаризации -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>📝 Тест генерации сводки</h5>
+                            </div>
+                            <div class="card-body">
+                                <form th:action="@{/test/summarize}" method="post">
+                                    <div class="mb-3">
+                                        <label for="content2" class="form-label">Текст для сводки:</label>
+                                        <textarea class="form-control" id="content2" name="content" rows="6" 
+                                                  th:text="${content}"
+                                                  placeholder="Введите длинный текст для генерации краткой сводки..."></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-success">✨ Создать сводку</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Примеры для тестирования -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>💡 Примеры для тестирования</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <h6>Технологии:</h6>
+                                        <small class="text-muted">
+                                            "Новый фреймворк для разработки веб-приложений на JavaScript показал отличные результаты в тестах производительности."
+                                        </small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6>Спорт:</h6>
+                                        <small class="text-muted">
+                                            "Футбольная команда одержала победу в чемпионате мира 2026 года, обыграв соперников со счетом 3:1."
+                                        </small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6>Экономика:</h6>
+                                        <small class="text-muted">
+                                            "Центральный банк принял решение о повышении ключевой ставки на 0.5% для борьбы с инфляцией."
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Навигация -->
+                <div class="mt-4">
+                    <a th:href="@{/admin/dashboard}" class="btn btn-secondary">← Вернуться в админку</a>
+                    <a th:href="@{/}" class="btn btn-outline-primary">🏠 На главную</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

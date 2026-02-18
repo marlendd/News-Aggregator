@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: html}">
+<head>
+    <th:block th:fragment="head-extra">
+        <!-- Дополнительные стили для настроек -->
+    </th:block>
+</head>
+<body>
+    <th:block th:fragment="content">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4><i class="bi bi-gear"></i> Настройки пользователя</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" th:action="@{/user/preferences}">
+                            <!-- Debug info (remove in production) -->
+                            <div class="alert alert-info" th:if="${preferences != null}">
+                                <small>
+                                    Текущие настройки: 
+                                    Статей на странице: <span th:text="${preferences.articlesPerPage}">10</span>,
+                                    Категории: <span th:text="${preferences.subscribedCategories}">нет</span>,
+                                    Источники: <span th:text="${preferences.preferredSources}">нет</span>
+                                </small>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <h6>Персональные настройки</h6>
+                                    
+                                    <div class="mb-3">
+                                        <label for="articlesPerPage" class="form-label">Статей на странице</label>
+                                        <select class="form-select" id="articlesPerPage" name="articlesPerPage">
+                                            <option value="5" th:selected="${preferences.articlesPerPage == 5}">5 статей</option>
+                                            <option value="10" th:selected="${preferences.articlesPerPage == 10}">10 статей</option>
+                                            <option value="20" th:selected="${preferences.articlesPerPage == 20}">20 статей</option>
+                                            <option value="50" th:selected="${preferences.articlesPerPage == 50}">50 статей</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <h6>Предпочтения по контенту</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Интересующие категории</label>
+                                    <div th:each="category : ${categories}" class="form-check">
+                                        <input class="form-check-input" type="checkbox" 
+                                               th:id="'category_' + ${category.id}" 
+                                               th:name="'subscribedCategories'" 
+                                               th:value="${category.id}"
+                                               th:checked="${preferences.isCategorySubscribed(category.id)}">
+                                        <label class="form-check-label" th:for="'category_' + ${category.id}">
+                                            <span class="badge rounded-pill me-2" 
+                                                  th:style="'background-color: ' + ${category.colorCode}"
+                                                  th:text="${category.name}">Категория</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label">Предпочитаемые источники</label>
+                                    <div th:if="${sources.isEmpty()}" class="text-muted small">
+                                        Нет доступных источников
+                                    </div>
+                                    <div th:each="source : ${sources}" class="form-check">
+                                        <input class="form-check-input" type="checkbox" 
+                                               th:id="'source_' + ${source.id}" 
+                                               th:name="'preferredSources'" 
+                                               th:value="${source.id}"
+                                               th:checked="${preferences.isSourcePreferred(source.id)}">
+                                        <label class="form-check-label" th:for="'source_' + ${source.id}">
+                                            <i class="bi bi-rss-fill text-primary me-1"></i>
+                                            <span th:text="${source.name}">Источник</span>
+                                        </label>
+                                    </div>
+                                    <small class="text-muted mt-2 d-block">Если ничего не выбрано, будут показаны статьи из всех источников</small>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check"></i> Сохранить настройки
+                                </button>
+                                <a th:href="@{/user/profile}" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-left"></i> Назад к профилю
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6><i class="bi bi-info-circle"></i> Справка</h6>
+                    </div>
+                    <div class="card-body">
+                        <h6>Персонализация</h6>
+                        <p class="small text-muted">
+                            Выберите интересующие вас категории и источники новостей, чтобы получать персонализированные рекомендации статей.
+                        </p>
+                        
+                        <h6>Источники новостей</h6>
+                        <p class="small text-muted">
+                            Если вы не выберете ни одного источника, будут показаны статьи из всех доступных источников.
+                        </p>
+                        
+                        <h6>Конфиденциальность</h6>
+                        <p class="small text-muted">
+                            Ваши настройки используются только для улучшения пользовательского опыта и не передаются третьим лицам.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+</body>
+</html>

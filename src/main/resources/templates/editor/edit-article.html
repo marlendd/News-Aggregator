@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактирование статьи - Агрегатор новостей</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .sidebar { 
+            min-height: 100vh; 
+            background-color: #343a40;
+        }
+        .sidebar .nav-link { 
+            color: #adb5bd; 
+            padding: 0.75rem 1rem;
+        }
+        .sidebar .nav-link:hover { 
+            color: #fff; 
+            background-color: #495057;
+        }
+        .sidebar .nav-link.active { 
+            background-color: #0d6efd; 
+            color: white; 
+            border-radius: 5px; 
+        }
+        .main-content {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin: 1rem 0;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        .article-preview {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .article-image-preview {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+        }
+        .character-count {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <!-- Простая навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">📰 Агрегатор новостей</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" th:href="@{/}">На главную</a>
+                <a class="nav-link" th:href="@{/editor}">Панель редактора</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Боковое меню редактора -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/editor}">
+                                <i class="bi bi-speedometer2"></i> Дашборд
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/editor/moderate}">
+                                <i class="bi bi-check-circle"></i> Модерация
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active">
+                                <i class="bi bi-pencil-square"></i> Редактирование
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/editor/stats}">
+                                <i class="bi bi-bar-chart"></i> Статистика
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Основной контент -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="main-content">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h2">
+                            <i class="bi bi-pencil-square text-primary"></i> 
+                            Редактирование статьи
+                        </h1>
+                        <a th:href="@{/editor/moderate}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Назад к модерации
+                        </a>
+                    </div>
+
+                    <!-- Сообщения -->
+                    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="bi bi-check-circle"></i> <span th:text="${successMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-circle"></i> <span th:text="${errorMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+
+                    <!-- Форма редактирования -->
+                    <form th:action="@{/editor/articles/{id}/update(id=${article.id})}" method="post">
+                        <div class="row">
+                            <div class="col-lg-8">
+                                <!-- Заголовок статьи -->
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">
+                                        <i class="bi bi-type-h1"></i> Заголовок статьи
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="title" 
+                                           name="title" 
+                                           th:value="${article.title}" 
+                                           required
+                                           maxlength="255"
+                                           onkeyup="updateCharCount('title', 'titleCount', 255)">
+                                    <div class="character-count">
+                                        <span id="titleCount">0</span>/255 символов
+                                    </div>
+                                </div>
+
+                                <!-- Краткое описание -->
+                                <div class="mb-3">
+                                    <label for="summary" class="form-label">
+                                        <i class="bi bi-text-left"></i> Краткое описание
+                                    </label>
+                                    <textarea class="form-control" 
+                                              id="summary" 
+                                              name="summary" 
+                                              rows="3"
+                                              maxlength="500"
+                                              th:text="${article.summary}"
+                                              onkeyup="updateCharCount('summary', 'summaryCount', 500)"></textarea>
+                                    <div class="character-count">
+                                        <span id="summaryCount">0</span>/500 символов
+                                    </div>
+                                </div>
+
+                                <!-- Содержание статьи -->
+                                <div class="mb-3">
+                                    <label for="content" class="form-label">
+                                        <i class="bi bi-file-text"></i> Содержание статьи
+                                    </label>
+                                    <textarea class="form-control" 
+                                              id="content" 
+                                              name="content" 
+                                              rows="15"
+                                              required
+                                              th:text="${article.content}"
+                                              onkeyup="updateCharCount('content', 'contentCount', 10000)"></textarea>
+                                    <div class="character-count">
+                                        <span id="contentCount">0</span>/10000 символов
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4">
+                                <!-- Изображение статьи -->
+                                <div class="mb-3">
+                                    <label for="imageUrl" class="form-label">
+                                        <i class="bi bi-image"></i> URL изображения
+                                    </label>
+                                    <input type="url" 
+                                           class="form-control" 
+                                           id="imageUrl" 
+                                           name="imageUrl" 
+                                           th:value="${article.imageUrl}"
+                                           onchange="previewImage()">
+                                    <img id="imagePreview" 
+                                         class="article-image-preview" 
+                                         th:src="${article.imageUrl}" 
+                                         th:if="${article.imageUrl}"
+                                         alt="Предварительный просмотр"
+                                         onerror="this.style.display='none'">
+                                </div>
+
+                                <!-- Категория -->
+                                <div class="mb-3">
+                                    <label for="categoryId" class="form-label">
+                                        <i class="bi bi-tags"></i> Категория
+                                    </label>
+                                    <select class="form-select" id="categoryId" name="categoryId">
+                                        <option value="">Без категории</option>
+                                        <option th:each="category : ${categories}" 
+                                                th:value="${category.id}" 
+                                                th:text="${category.name}"
+                                                th:selected="${article.category != null && article.category.id == category.id}">
+                                            Категория
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Информация о статье -->
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="bi bi-info-circle"></i> Информация о статье
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="mb-2">
+                                            <strong>ID:</strong> <span th:text="${article.id}">1</span>
+                                        </p>
+                                        <p class="mb-2">
+                                            <strong>Статус:</strong> 
+                                            <span class="badge" 
+                                                  th:classappend="${article.status.name() == 'PUBLISHED'} ? 'bg-success' : 
+                                                                 (${article.status.name() == 'PENDING'} ? 'bg-warning' : 'bg-danger')"
+                                                  th:text="${article.status.name() == 'PUBLISHED'} ? 'Опубликована' : 
+                                                           (${article.status.name() == 'PENDING'} ? 'На модерации' : 'Отклонена')">
+                                                Статус
+                                            </span>
+                                        </p>
+                                        <p class="mb-2">
+                                            <strong>Источник:</strong> 
+                                            <span th:text="${article.source?.name ?: 'Неизвестно'}">Источник</span>
+                                        </p>
+                                        <p class="mb-2">
+                                            <strong>Дата создания:</strong><br>
+                                            <small th:text="${#temporals.format(article.createdAt, 'dd.MM.yyyy HH:mm')}">01.01.2026 12:00</small>
+                                        </p>
+                                        <p class="mb-0" th:if="${article.publishedAt}">
+                                            <strong>Дата публикации:</strong><br>
+                                            <small th:text="${#temporals.format(article.publishedAt, 'dd.MM.yyyy HH:mm')}">01.01.2026 12:00</small>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Кнопки действий -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-save"></i> Сохранить изменения
+                                    </button>
+                                    <a th:href="@{/editor/moderate}" class="btn btn-secondary">
+                                        <i class="bi bi-x"></i> Отмена
+                                    </a>
+                                    <a th:href="@{/news/{id}(id=${article.id})}" 
+                                       class="btn btn-outline-info">
+                                        <i class="bi bi-box-arrow-up-right"></i> Просмотр статьи
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Функция для подсчета символов
+        function updateCharCount(fieldId, countId, maxLength) {
+            const field = document.getElementById(fieldId);
+            const counter = document.getElementById(countId);
+            const currentLength = field.value.length;
+            
+            counter.textContent = currentLength;
+            
+            // Изменяем цвет счетчика в зависимости от заполненности
+            if (currentLength > maxLength * 0.9) {
+                counter.style.color = '#dc3545'; // Красный
+            } else if (currentLength > maxLength * 0.7) {
+                counter.style.color = '#fd7e14'; // Оранжевый
+            } else {
+                counter.style.color = '#6c757d'; // Серый
+            }
+        }
+
+        // Функция для предварительного просмотра изображения
+        function previewImage() {
+            const imageUrl = document.getElementById('imageUrl').value;
+            const preview = document.getElementById('imagePreview');
+            
+            if (imageUrl) {
+                preview.src = imageUrl;
+                preview.style.display = 'block';
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        // Инициализация счетчиков при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCharCount('title', 'titleCount', 255);
+            updateCharCount('summary', 'summaryCount', 500);
+            updateCharCount('content', 'contentCount', 10000);
+        });
+    </script>
+</body>
+</html>
