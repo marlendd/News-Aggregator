@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # MySQL база данных
+  mysql:
+    image: mysql:8.0
+    container_name: news-aggregator-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: news_aggregator
+      MYSQL_USER: news_user
+      MYSQL_PASSWORD: news_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database:/docker-entrypoint-initdb.d
+    networks:
+      - news-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Spring Boot приложение
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: news-aggregator-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Настройки подключения к БД
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/news_aggregator?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: news_user
+      SPRING_DATASOURCE_PASSWORD: news_password
+      
+      # Настройки JPA
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: false
+      
+      # Настройки логирования
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_COM_NEWSAGGREGATOR: DEBUG
+      
+      # Настройки RSS
+      APP_RSS_UPDATE_INTERVAL: 300000
+      
+      # Настройки LM Studio (опционально)
+      APP_LMSTUDIO_ENABLED: false
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - news-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+networks:
+  news-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
