@@ -1,8 +1,8 @@
 # Docker развертывание News Aggregator
 
-## Быстрый старт (Development)
+## Быстрый старт
 
-### 1. Сборка и запуск
+### 1. Сборка и запуск (локальная сборка)
 ```bash
 # Сборка образа и запуск контейнеров
 docker-compose up -d
@@ -14,7 +14,22 @@ docker-compose logs -f app
 docker-compose down
 ```
 
-### 2. Доступ к приложению
+### 2. Использование образа с Docker Hub
+Если образ уже опубликован на Docker Hub:
+
+```bash
+# 1. Отредактируйте docker-compose.yml
+# Закомментируйте секцию build и раскомментируйте image:
+#   build:
+#     context: .
+#     dockerfile: Dockerfile
+#   image: YOUR_USERNAME/news-aggregator:latest  # Раскомментируйте
+
+# 2. Запустите
+docker-compose up -d
+```
+
+### 3. Доступ к приложению
 - **Приложение**: http://localhost:8080
 - **MySQL**: localhost:3306
 
@@ -226,17 +241,98 @@ innodb_buffer_pool_size=512M
 innodb_log_file_size=128M
 ```
 
+## Публикация на Docker Hub
+
+### Ручная публикация
+
+1. **Войдите в Docker Hub**:
+```bash
+docker login
+```
+
+2. **Соберите образ с тегом**:
+```bash
+# Замените YOUR_USERNAME на ваш Docker Hub username
+docker build -t YOUR_USERNAME/news-aggregator:1.0.0 .
+docker tag YOUR_USERNAME/news-aggregator:1.0.0 YOUR_USERNAME/news-aggregator:latest
+```
+
+3. **Запушьте образ**:
+```bash
+docker push YOUR_USERNAME/news-aggregator:1.0.0
+docker push YOUR_USERNAME/news-aggregator:latest
+```
+
+4. **Используйте опубликованный образ**:
+```bash
+docker pull YOUR_USERNAME/news-aggregator:latest
+```
+
+### Автоматическая публикация (скрипт)
+
+Используйте готовый скрипт `docker-push.sh`:
+
+```bash
+# 1. Отредактируйте скрипт - замените YOUR_DOCKERHUB_USERNAME
+nano docker-push.sh
+
+# 2. Запустите скрипт
+./docker-push.sh
+```
+
+### Использование опубликованного образа
+
+После публикации обновите `docker-compose.yml`:
+
+```yaml
+services:
+  app:
+    image: YOUR_USERNAME/news-aggregator:latest  # Вместо build
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+```
+
 ## Интеграция с CI/CD
 
 ### GitHub Actions пример
 ```yaml
-- name: Build Docker image
-  run: docker build -t news-aggregator:latest .
+name: Build and Push Docker Image
 
-- name: Push to registry
-  run: |
-    docker tag news-aggregator:latest registry.example.com/news-aggregator:latest
-    docker push registry.example.com/news-aggregator:latest
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: YOUR_USERNAME/news-aggregator
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 ```
 
 ## Поддержка

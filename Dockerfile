@@ -1,5 +1,3 @@
-# Многоэтапная сборка для оптимизации размера образа
-
 # Этап 1: Сборка приложения
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
@@ -13,18 +11,20 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Этап 2: Финальный образ
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 
 # Создаем пользователя для запуска приложения
-RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
+RUN groupadd -r spring && useradd -r -g spring spring
 
 # Копируем JAR из этапа сборки
 COPY --from=build /app/target/*.jar app.jar
 
-# Создаем директорию для логов
-RUN mkdir -p /app/logs
+# Создаем директорию для логов и даем права
+RUN mkdir -p /app/logs && chown -R spring:spring /app
+
+# Переключаемся на пользователя spring
+USER spring:spring
 
 # Открываем порт приложения
 EXPOSE 8080

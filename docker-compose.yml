@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # MySQL база данных
   mysql:
@@ -25,9 +23,12 @@ services:
 
   # Spring Boot приложение
   app:
+    # Вариант 1: Сборка локально (по умолчанию)
     build:
       context: .
       dockerfile: Dockerfile
+      image: lezinovvv/news-aggregator:latest
+    
     container_name: news-aggregator-app
     restart: unless-stopped
     ports:
